@@ -107,7 +107,7 @@ class BackTester:
         if self._is_satisfy_take_profit_percentage_condition(target_candle=target_candle, take_profit_percentage=take_profit_percentage):
             self._sell(target_candle, volume=volume)
             message = f'수익 퍼센트 조건에 도달하여 포지션을 정리합니다. market_code: {target_candle.code}, 매도 가격: {target_candle.close_price}, 현재 KRW 잔액: {self.krw_balance}, ' \
-                      f'진입 시 캔들 날짜: {target_candle.date_time}'
+                      f'포지션 정리 시 캔들 날짜: {target_candle.date_time}'
             TelegramBot.send_message(chat_id=telegram_chat_id, message=message)
 
         current_rsi = RsiCalculator.get_latest_candle_rsi(market_code=self.market_code, target_candle_minute=self.target_minute,
@@ -115,14 +115,15 @@ class BackTester:
         if self._is_satisfy_take_profit_rsi_condition(current_rsi=current_rsi, take_profit_rsi=take_profit_rsi):
             self._sell(target_candle=target_candle, volume=volume)
             message = f'수익 RSI 조건에 도달하여 포지션을 정리합니다. market_code: {target_candle.code}, 매도 가격: {target_candle.close_price}, 현재 KRW 잔액: {self.krw_balance},' \
-                      f'진입 시 캔들 날짜: {target_candle.date_time}, 현재 RSI: {current_rsi}'
+                      f'포지션 정리 시 캔들 날짜: {target_candle.date_time}, 현재 RSI: {current_rsi}'
             TelegramBot.send_message(chat_id=telegram_chat_id, message=message)
 
     def _stop_loss(self, target_candle, stop_loss_percentage, volume=1):
         if not self.is_open_position:
             return
         if self._is_satisfy_stop_loss_percentage_condition(target_candle=target_candle, stop_loss_percentage=stop_loss_percentage):
-            message = f'손절 퍼센트 조건에 도달하여 포지션을 정리합니다. market_code: {target_candle.code}, 매도 가격: {target_candle.close_price}, 현재 KRW 잔액: {self.krw_balance}'
+            message = f'손절 퍼센트 조건에 도달하여 포지션을 정리합니다. market_code: {target_candle.code}, 매도 가격: {target_candle.close_price}, 현재 KRW 잔액: {self.krw_balance},' \
+                      f'손절 시 캔들 날짜: {target_candle.date_time}'
             TelegramBot.send_message(chat_id=telegram_chat_id, message=message)
             self._sell(target_candle=target_candle, volume=volume)
 
