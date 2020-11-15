@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "trading"
+version = "0.1.0"
+description = ""
+authors = ["ethdevss <ethdevss@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+django = "3.0.5"
+djongo = "^1.3.3"
+redis = "^3.5.3"
+django-celery-beat = "^2.1.0"
+mysqlclient = "^2.0.1"
+apscheduler = "^3.6.3"
+websocket-client = "^0.57.0"
+mongoengine = "^0.20.0"
+arrow = "^0.17.0"
+datetime = "^4.3"
+requests = "^2.24.0"
+PyJWT = "^1.7.1"
+numpy = "^1.19.4"
+pandas = "^1.1.4"
+python-telegram-bot = "^13.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

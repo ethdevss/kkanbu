@@ -1,0 +1,199 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <title>Crypto Trading</title>
+
+  <!-- Bootstrap core CSS -->
+  <link href="{% static 'bot/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+
+  <!-- Custom styles for this template -->
+  <link href="{% static 'bot/css/scrolling-nav.css' %}" rel="stylesheet">
+
+</head>
+
+<body id="page-top">
+
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" id="mainNav">
+    <div class="container">
+      <a class="navbar-brand js-scroll-trigger" href="{% url 'index' %}">Crypto Trading</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarResponsive">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item">
+            <a class="nav-link js-scroll-trigger" href={% url 'index' %}>홈</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link js-scroll-trigger" href="{% url 'key-settings' %}">API Key</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link js-scroll-trigger" href="{% url 'trading-settings' %}">봇 설정</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link js-scroll-trigger" href="{% url 'logout' %}">로그아웃</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <header class="bg-primary text-white">
+    <div class="container text-center">
+      <h1>Algorithm Trading 봇 설정</h1>
+      <p class="lead">Algorithm Trading을 위한 봇 설정 공간입니다.</p>
+    </div>
+  </header>
+
+  <section id="about">
+    <div class="container">
+      <div class="row">
+        {% if is_running %}
+        <div class="col-lg-8 mx-auto">
+          <h2>현재 실행중인 봇의 설정</h2>
+          <ul>
+            <li>대상 메이저 코인 목록: {{ rsi_strategy.target_major_market_codes }}</li>
+            <li>대상 마이너 코인 목록: {{ rsi_strategy.target_minor_market_codes }}</li>
+            <li>메이저 코인 매수 비율: {{ rsi_strategy.major_crypto_buy_percentage }}</li>
+            <li>마이너 코인 매수 비율: {{ rsi_strategy.minor_crypto_buy_percentage }}</li>
+            <li>포지션 진입 기준 RSI: {{ rsi_strategy.open_position_rsi }}</li>
+            <li>익절 퍼센트: {{ rsi_strategy.take_profit_percentage }}</li>
+            <li>익절 RSI: {{ rsi_strategy.take_profit_rsi }}</li>
+            <li>손절 퍼센트: {{ rsi_strategy.stop_loss_percentage }}</li>
+            <li>대상 분봉 캔들: {{ rsi_strategy.target_candle_minute }}</li>
+          </ul>
+        </div>
+
+        <form action="{% url 'stop-trading' %}" method="POST">
+          {% csrf_token %}
+          <div class="form-group">
+            <button class="btn btn-primary" type="submit">봇 중지</button>
+          </div>
+        </form>
+
+        {% elif is_exist_strategy %}
+        <div class="col-lg-8 mx-auto">
+          <h2>현재 실행 대기중인 봇의 설정</h2>
+          <ul>
+            <li>대상 메이저 코인 목록: {{ rsi_strategy.target_major_market_codes }}</li>
+            <li>대상 마이너 코인 목록: {{ rsi_strategy.target_minor_market_codes }}</li>
+            <li>메이저 코인 매수 비율: {{ rsi_strategy.major_crypto_buy_percentage }}</li>
+            <li>마이너 코인 매수 비율: {{ rsi_strategy.minor_crypto_buy_percentage }}</li>
+            <li>포지션 진입 기준 RSI: {{ rsi_strategy.open_position_rsi }}</li>
+            <li>익절 퍼센트: {{ rsi_strategy.take_profit_percentage }}</li>
+            <li>익절 RSI: {{ rsi_strategy.take_profit_rsi }}</li>
+            <li>손절 퍼센트: {{ rsi_strategy.stop_loss_percentage }}</li>
+            <li>대상 분봉 캔들: {{ rsi_strategy.target_candle_minute }}</li>
+          </ul>
+        </div>
+
+        <div class="col-lg-8 mx-auto">
+          <form action="{% url 'initialize-trading-settings' %}" method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+              <button class="btn btn-primary" type="submit">봇 설정 초기화</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="col-lg-8 mx-auto">
+          <form action="{% url 'start-trading' %}" method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+              <button class="btn btn-primary" type="submit">봇 실행</button>
+            </div>
+          </form>
+        </div>
+
+        {% else %}
+        <div class="col-lg-8 mx-auto">
+          <h3>봇 설정(기본값은 입력 예시입니다)</h3>
+          <form method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+              <label for="">대상 메이저 코인 목록</label>
+              <input type="text" class="form-control" name="target_major_market_codes" value="KRW-BTC,KRW-BCH">
+            </div>
+            <div class="form-group">
+              <label for="">대상 마이너 코인 목록</label>
+              <input type="text" class="form-control" name="target_minor_market_codes" value="KRW-TRX,KRW-ADA">
+            </div>
+            <div class="form-group">
+              <label for="">메이저 코인 매수 비율</label>
+              <input type="text" class="form-control" name="major_crypto_buy_percentage" value=60>
+            </div>
+            <div class="form-group">
+              <label for="">마이너 코인 매수 비율</label>
+              <input type="text" class="form-control" name="minor_crypto_buy_percentage" value=40>
+            </div>
+            <div class="form-group">
+              <label for="">포지션 진입 기준 RSI</label>
+              <input type="text" class="form-control" name="open_position_rsi" value=25>
+            </div>
+            <div class="form-group">
+              <label for="">익절 퍼센트</label>
+              <input type="text" class="form-control" name="take_profit_percentage" value=10>
+            </div>
+            <div class="form-group">
+              <label for="">익절 RSI</label>
+              <input type="text" class="form-control" name="take_profit_rsi" value=70>
+            </div>
+            <div class="form-group">
+              <label for="">손절 퍼센트</label>
+              <input type="text" class="form-control" name="stop_loss_percentage" value=10>
+            </div>
+            <div class="form-group">
+              <label for="exampleFormControlSelect1">분봉</label>
+              <select class="form-control" name="target_candle_minute">
+                <option>1</option>
+                <option>3</option>
+                <option>5</option>
+                <option>10</option>
+                <option>15</option>
+                <option>30</option>
+                <option>60</option>
+                <option>240</option>
+                <option>1440</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" type="submit">봇 설정</button>
+          </form>
+        </div>
+        {% endif %}
+        <div class="col-lg-8 mx-auto">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-5 bg-dark">
+    <div class="container">
+      <p class="m-0 text-center text-white">Copyright &copy; Your Website 2020</p>
+    </div>
+    <!-- /.container -->
+  </footer>
+
+  <!-- Bootstrap core JavaScript -->
+  <script src="{% static 'bot/vendor/jquery/jquery-3.2.1.min.js' %}"></script>
+  <script src="{% static 'bot/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+  <!-- Plugin JavaScript -->
+  <script src="{% static 'bot/vendor/jquery-easing/jquery.easing.min.js' %}"></script>
+
+  <!-- Custom JavaScript for this theme -->
+  <script src="{%  static 'bot/js/scrolling-nav.js' %}"></script>
+
+</body>
+
+</html>
