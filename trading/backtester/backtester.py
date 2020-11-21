@@ -76,8 +76,14 @@ class BackTester:
         if self._is_satisfy_open_position_condition(current_rsi=current_rsi, open_position_rsi=open_position_rsi):
             buy_volume = self._get_volume(target_candle=target_candle)
             self._buy(target_candle=target_candle, volume=buy_volume)
-            message = f'RSI 진입 조건에 만족하여 매수를 진행합니다. market_code: {target_candle.code}, 매수 진입 가격: {target_candle.close_price}, 현재 KRW 잔액: {self.krw_balance},' \
-                      f'진입 시 캔들 날짜: {target_candle.date_time}, 현재 RSI: {current_rsi}, 현재 보유 코인 개수: {self.currency_balance}'
+            message = f"== 포지션 진입 == \n" \
+                      f"진입 시점: {target_candle.date_time} \n" \
+                      f"진입 시 캔들의 rsi: {current_rsi} \n" \
+                      f"진입 시 코인 가격: {target_candle.close_price} \n" \
+                      f"구매한 코인 개수: {buy_volume} \n" \
+                      f"현재 KRW 잔액: {self.krw_balance} \n" \
+                      f"코인 잔액: {self.currency_balance}"
+
             TelegramBot.send_message(chat_id=telegram_chat_id, message=message)
 
     def _get_volume(self, target_candle):
@@ -85,6 +91,16 @@ class BackTester:
         krw_amount_for_buy = self.krw_balance * self.buy_percentage / 100.0
         available_volume = krw_amount_for_buy / close_price
         return available_volume
+
+    def _get_profit_percentage(self, target_candle):
+        margin = target_candle.close_price - self.avg_price
+        profit_percentage = margin / self.avg_price * 100.0
+        return profit_percentage
+
+    def _get_loss_percentage(self, target_candle):
+        loss = self.avg_price - target_candle.close_price
+        loss_percentage = loss / self.avg_price * 100.0
+        return loss_percentage
 
     def _buy(self, target_candle, volume=1):
         if self.is_open_position:
@@ -106,7 +122,7 @@ class BackTester:
 
         self.currency_balance = self.currency_balance - volume
         self.krw_balance = self.krw_balance + (target_candle.close_price * volume)
-        self.avg_price = None
+        #self.avg_price = None
         self.is_open_position = False
 
     def _take_profit(self, target_candle, take_profit_rsi, take_profit_percentage, volume=1):
@@ -114,24 +130,38 @@ class BackTester:
             return
         if self._is_satisfy_take_profit_percentage_condition(target_candle=target_candle, take_profit_percentage=take_profit_percentage):
             self._sell(target_candle, volume=volume)
-            message = f'수익 퍼센트 조건에 도달하여 포지션을 정리합니다. market_code: {target_candle.code}, 매도 가격: {target_candle.close_price}, 현재 KRW 잔액: {self.krw_balance}, ' \
-                      f'포지션 정리 시 캔들 날짜: {target_candle.date_time}, 현재 보유 코인 개수: {self.currency_balance}'
+            message = f"== 포지션 청산 == \n" \
+                      f"진입 시점: {target_candle.date_time} \n" \
+                      f"수익률: {self._get_profit_percentage(target_candle)} \n" \
+                      f"청산 발동 조건: 목표 익절 퍼센티지에 도달 \n" \
+                      f"청산 시 코인 가격: {target_candle.close_price} \n" \
+                      f"현재 KRW 잔액: {self.krw_balance}"
+
             TelegramBot.send_message(chat_id=telegram_chat_id, message=message)
 
         current_rsi = RsiCalculator.get_latest_candle_rsi(market_code=self.market_code, target_candle_minute=self.target_minute,
                                                           target_date_time=target_candle.date_time)
         if self._is_satisfy_take_profit_rsi_condition(current_rsi=current_rsi, take_profit_rsi=take_profit_rsi):
             self._sell(target_candle=target_candle, volume=volume)
-            message = f'수익 RSI 조건에 도달하여 포지션을 정리합니다. market_code: {target_candle.code}, 매도 가격: {target_candle.close_price}, 현재 KRW 잔액: {self.krw_balance},' \
-                      f'포지션 정리 시 캔들 날짜: {target_candle.date_time}, 현재 RSI: {current_rsi}, 현재 보유 코인 개수: {self.currency_balance}'
+            message = f"== 포지션 청산 == \n" \
+                      f"진입 시점: {target_candle.date_time} \n" \
+                      f"수익률: {self._get_profit_percentage(target_candle)} \n" \
+                      f"청산 발동 조건: 익절 RSI 도달 \n" \
+                      f"청산 시 캔들의 RSI: {current_rsi} \n" \
+                      f"청산 시 코인 가격: {target_candle.close_price} \n" \
+                      f"현재 KRW 잔액: {self.krw_balance}"
             TelegramBot.send_message(chat_id=telegram_chat_id, message=message)
 
     def _stop_loss(self, target_candle, stop_loss_percentage, volume=1):
         if not self.is_open_position:
             return
         if self._is_satisfy_stop_loss_percentage_condition(target_candle=target_candle, stop_loss_percentage=stop_loss_percentage):
-            message = f'손절 퍼센트 조건에 도달하여 포지션을 정리합니다. market_code: {target_candle.code}, 매도 가격: {target_candle.close_price}, 현재 KRW 잔액: {self.krw_balance},' \
-                      f'손절 시 캔들 날짜: {target_candle.date_time}, 현재 보유 코인 개수: {self.currency_balance}'
+            message = f"== 포지션 청산 == \n" \
+                      f"진입 시점: {target_candle.date_time} \n" \
+                      f"손실률: {self._get_loss_percentage(target_candle)} \n" \
+                      f"청산 발동 조건: 손실 퍼센티지에 도달함 \n" \
+                      f"청산 시 코인 가격: {target_candle.close_price} \n" \
+                      f"현재 KRW 잔액: {self.krw_balance}"
             TelegramBot.send_message(chat_id=telegram_chat_id, message=message)
             self._sell(target_candle=target_candle, volume=volume)
 
@@ -196,7 +226,14 @@ if __name__ == "__main__":
     back_tester = BackTester(initial_balance=initial_balance_param, market_code=market_code_param, target_minute=target_minute_param,
                              buy_percentage=buy_percentage, start_date=start_date_param, end_date=end_date_param)
 
-    print(f"초기 시작 금액: {initial_balance_param}")
+    message = f"== 백테스팅을 시작합니다 ==\n\n" \
+              f"코인 종류: {market_code_param} \n" \
+              f"시작 KRW 잔액: {initial_balance_param} \n" \
+              f"대상 캔들 분봉: {target_minute_param} \n" \
+              f"백테스팅 시작 기간: {start_date_param} \n" \
+              f"백테스팅 종료 기간: {end_date_param} \n" \
+
+    TelegramBot.send_message(chat_id=telegram_chat_id, message=message)
 
     back_tester.run(open_position_rsi=open_position_rsi_param, take_profit_rsi=take_profit_rsi_param,
                     take_profit_percentage=take_profit_percentage_param, stop_loss_percentage=stop_loss_percentage_param)
