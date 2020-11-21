@@ -58,13 +58,14 @@ class RsiCalculator:
 
 
 class BackTester:
-    def __init__(self, initial_balance, market_code, target_minute, start_date, end_date):
+    def __init__(self, initial_balance, market_code, target_minute, buy_percentage, start_date, end_date):
         self.market_code = market_code
         self.target_minute = target_minute
         self.target_candles = CandleDataLoader.load(market_code=market_code, target_minute=target_minute, start_date=start_date, end_date=end_date)
         self.is_open_position = False
         self.krw_balance = initial_balance
         self.currency_balance = 0
+        self.buy_percentage = buy_percentage
         self.avg_price = None
 
     def _trade(self, target_candle, open_position_rsi):
@@ -73,10 +74,17 @@ class BackTester:
         current_rsi = RsiCalculator.get_latest_candle_rsi(market_code=self.market_code, target_candle_minute=self.target_minute, target_date_time=target_candle.date_time)
 
         if self._is_satisfy_open_position_condition(current_rsi=current_rsi, open_position_rsi=open_position_rsi):
-            self._buy(target_candle=target_candle)
+            buy_volume = self._get_volume(target_candle=target_candle)
+            self._buy(target_candle=target_candle, volume=buy_volume)
             message = f'RSI 진입 조건에 만족하여 매수를 진행합니다. market_code: {target_candle.code}, 매수 진입 가격: {target_candle.close_price}, 현재 KRW 잔액: {self.krw_balance},' \
-                      f'진입 시 캔들 날짜: {target_candle.date_time}, 현재 RSI: {current_rsi}'
+                      f'진입 시 캔들 날짜: {target_candle.date_time}, 현재 RSI: {current_rsi}, 현재 보유 코인 개수: {self.currency_balance}'
             TelegramBot.send_message(chat_id=telegram_chat_id, message=message)
+
+    def _get_volume(self, target_candle):
+        close_price = target_candle.close_price
+        krw_amount_for_buy = self.krw_balance * self.buy_percentage / 100.0
+        available_volume = krw_amount_for_buy / close_price
+        return available_volume
 
     def _buy(self, target_candle, volume=1):
         if self.is_open_position:
@@ -107,7 +115,7 @@ class BackTester:
         if self._is_satisfy_take_profit_percentage_condition(target_candle=target_candle, take_profit_percentage=take_profit_percentage):
             self._sell(target_candle, volume=volume)
             message = f'수익 퍼센트 조건에 도달하여 포지션을 정리합니다. market_code: {target_candle.code}, 매도 가격: {target_candle.close_price}, 현재 KRW 잔액: {self.krw_balance}, ' \
-                      f'포지션 정리 시 캔들 날짜: {target_candle.date_time}'
+                      f'포지션 정리 시 캔들 날짜: {target_candle.date_time}, 현재 보유 코인 개수: {self.currency_balance}'
             TelegramBot.send_message(chat_id=telegram_chat_id, message=message)
 
         current_rsi = RsiCalculator.get_latest_candle_rsi(market_code=self.market_code, target_candle_minute=self.target_minute,
@@ -115,7 +123,7 @@ class BackTester:
         if self._is_satisfy_take_profit_rsi_condition(current_rsi=current_rsi, take_profit_rsi=take_profit_rsi):
             self._sell(target_candle=target_candle, volume=volume)
             message = f'수익 RSI 조건에 도달하여 포지션을 정리합니다. market_code: {target_candle.code}, 매도 가격: {target_candle.close_price}, 현재 KRW 잔액: {self.krw_balance},' \
-                      f'포지션 정리 시 캔들 날짜: {target_candle.date_time}, 현재 RSI: {current_rsi}'
+                      f'포지션 정리 시 캔들 날짜: {target_candle.date_time}, 현재 RSI: {current_rsi}, 현재 보유 코인 개수: {self.currency_balance}'
             TelegramBot.send_message(chat_id=telegram_chat_id, message=message)
 
     def _stop_loss(self, target_candle, stop_loss_percentage, volume=1):
@@ -123,15 +131,16 @@ class BackTester:
             return
         if self._is_satisfy_stop_loss_percentage_condition(target_candle=target_candle, stop_loss_percentage=stop_loss_percentage):
             message = f'손절 퍼센트 조건에 도달하여 포지션을 정리합니다. market_code: {target_candle.code}, 매도 가격: {target_candle.close_price}, 현재 KRW 잔액: {self.krw_balance},' \
-                      f'손절 시 캔들 날짜: {target_candle.date_time}'
+                      f'손절 시 캔들 날짜: {target_candle.date_time}, 현재 보유 코인 개수: {self.currency_balance}'
             TelegramBot.send_message(chat_id=telegram_chat_id, message=message)
             self._sell(target_candle=target_candle, volume=volume)
 
     def run(self, open_position_rsi, take_profit_percentage, take_profit_rsi, stop_loss_percentage):
         for target_candle in self.target_candles:
             self._trade(target_candle=target_candle, open_position_rsi=open_position_rsi)
-            self._take_profit(target_candle=target_candle, take_profit_rsi=take_profit_rsi, take_profit_percentage=take_profit_percentage)
-            self._stop_loss(target_candle=target_candle, stop_loss_percentage=stop_loss_percentage)
+            self._take_profit(target_candle=target_candle, take_profit_rsi=take_profit_rsi, take_profit_percentage=take_profit_percentage,
+                              volume=self.currency_balance)
+            self._stop_loss(target_candle=target_candle, stop_loss_percentage=stop_loss_percentage, volume=self.currency_balance)
 
     @staticmethod
     def _is_satisfy_open_position_condition(current_rsi, open_position_rsi):
@@ -176,15 +185,16 @@ if __name__ == "__main__":
 
     start_date_param = "201901041700" # 2019년년 1월 04일 17시 00분
     end_date_param = "202010282100" # 2020년 10월 28일 21시 00분
-    initial_balance_param = 100000000
+    initial_balance_param = 5000000
 
     open_position_rsi_param = 35
     take_profit_percentage_param = 10
     take_profit_rsi_param = 75
     stop_loss_percentage_param = 10
+    buy_percentage = 50
 
     back_tester = BackTester(initial_balance=initial_balance_param, market_code=market_code_param, target_minute=target_minute_param,
-                             start_date=start_date_param, end_date=end_date_param)
+                             buy_percentage=buy_percentage, start_date=start_date_param, end_date=end_date_param)
 
     print(f"초기 시작 금액: {initial_balance_param}")
 
