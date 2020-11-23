@@ -58,14 +58,13 @@ class RsiCalculator:
 
 
 class BackTester:
-    def __init__(self, initial_balance, market_code, target_minute, buy_percentage, start_date, end_date):
+    def __init__(self, initial_balance, market_code, target_minute, start_date, end_date):
         self.market_code = market_code
         self.target_minute = target_minute
         self.target_candles = CandleDataLoader.load(market_code=market_code, target_minute=target_minute, start_date=start_date, end_date=end_date)
         self.is_open_position = False
         self.krw_balance = initial_balance
         self.currency_balance = 0
-        self.buy_percentage = buy_percentage
         self.avg_price = None
 
     def _trade(self, target_candle, open_position_rsi):
@@ -88,7 +87,7 @@ class BackTester:
 
     def _get_volume(self, target_candle):
         close_price = target_candle.close_price
-        krw_amount_for_buy = self.krw_balance * self.buy_percentage / 100.0
+        krw_amount_for_buy = self.krw_balance * 99.9 / 100.0
         available_volume = krw_amount_for_buy / close_price
         return available_volume
 
@@ -213,18 +212,17 @@ if __name__ == "__main__":
     market_code_param = "KRW-BTC"
     target_minute_param = "240"
 
-    start_date_param = "201901041700" # 2019년년 1월 04일 17시 00분
-    end_date_param = "202010282100" # 2020년 10월 28일 21시 00분
-    initial_balance_param = 5000000
+    start_date_param = "201810010000"  # 2019년년 1월 04일 17시 00분
+    end_date_param = "202010282100"  # 2020년 10월 28일 21시 00분
+    initial_balance_param = 1000000
 
-    open_position_rsi_param = 35
-    take_profit_percentage_param = 10
-    take_profit_rsi_param = 75
-    stop_loss_percentage_param = 10
-    buy_percentage = 50
+    open_position_rsi_param = 20
+    take_profit_percentage_param = 100
+    take_profit_rsi_param = 100
+    stop_loss_percentage_param = 90
 
     back_tester = BackTester(initial_balance=initial_balance_param, market_code=market_code_param, target_minute=target_minute_param,
-                             buy_percentage=buy_percentage, start_date=start_date_param, end_date=end_date_param)
+                             start_date=start_date_param, end_date=end_date_param)
 
     message = f"== 백테스팅을 시작합니다 ==\n\n" \
               f"코인 종류: {market_code_param} \n" \
