@@ -156,6 +156,7 @@ class BackTester:
         if not self.is_open_position:
             return
         if self._is_satisfy_stop_loss_percentage_condition(target_candle=target_candle, stop_loss_percentage=stop_loss_percentage):
+            self._sell(target_candle=target_candle, volume=volume)
             message = f"== 포지션 청산 == \n" \
                       f"진입 시점: {target_candle.date_time} \n" \
                       f"손실률: {self._get_loss_percentage(target_candle)} \n" \
@@ -163,7 +164,6 @@ class BackTester:
                       f"청산 시 코인 가격: {target_candle.close_price} \n" \
                       f"현재 KRW 잔액: {self.krw_balance}"
             TelegramBot.send_message(chat_id=telegram_chat_id, message=message)
-            self._sell(target_candle=target_candle, volume=volume)
 
     def run(self, open_position_rsi, take_profit_percentage, take_profit_rsi, stop_loss_percentage):
         for target_candle in self.target_candles:
